@@ -1,6 +1,7 @@
 
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const jwt = require("jsonwebtoken");
 
 
 
@@ -154,6 +155,80 @@ const registerUser = async (req, res) => {
       })
     });
   }
+};
+
+
+const loginUser = async (req, res) => {
+    try {
+        // Login logic here
+        const { email, password } = req.body;
+
+        if(!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and password are required",
+                error: {
+                    type: 'ValidationError',
+                    missingFields: !email && !password ? ['email', 'password'] : !email ? ['email'] : ['password'],
+                    timestamp: new Date().toISOString()
+                }   
+            })
+        }
+
+        const user = await User.findOne({ email });
+        if(!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email",
+                error: {
+                    type: 'AuthenticationError',
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if(!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password",
+                error: {
+                    type: 'AuthenticationError',
+                    timestamp: new Date().toISOString()
+                }
+            });
+        }
+
+        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        res.status(200).json({
+            success: true,
+            message: "Login successful",
+            data: {
+                userId: user._id,
+                email: user.email,
+                token
+            }
+        });
+
+    } catch (e) {
+        console.error('=== LOGIN ERROR ===');
+        console.error('Error Type:', e.constructor.name);
+        console.error('Error Message:', e.message);
+        console.error('Stack Trace:', e.stack);
+        console.error('Request Body:', req.body);
+        console.error('Timestamp:', new Date().toISOString());
+        console.error('===================');
+
+        res.status(500).json({
+            success: false,
+            message: "Login failed due to server error",
+            error: {
+                type: e.constructor.name,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
 };
 
 
