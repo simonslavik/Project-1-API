@@ -159,81 +159,58 @@ const registerUser = async (req, res) => {
 
 
 const loginUser = async (req, res) => {
-    try {
-        // Login logic here
-        const { email, password } = req.body;
+  const { email, password } = req.body;
 
-        if(!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "Email and password are required",
-                error: {
-                    type: 'ValidationError',
-                    missingFields: !email && !password ? ['email', 'password'] : !email ? ['email'] : ['password'],
-                    timestamp: new Date().toISOString()
-                }   
-            })
-        }
+  try {
+    const checkUser = await User.findOne({ email });
+    if (!checkUser)
+      return res.json({
+        success: false,
+        message: "User doesn't exists! Please register first",
+      });
 
-        const user = await User.findOne({ email });
-        if(!user) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid email",
-                error: {
-                    type: 'AuthenticationError',
-                    timestamp: new Date().toISOString()
-                }
-            });
-        }
+    const checkPasswordMatch = await bcrypt.compare(
+      password,
+      checkUser.password
+    );
+    if (!checkPasswordMatch)
+      return res.json({
+        success: false,
+        message: "Incorrect password! Please try again",
+      });
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch) {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid password",
-                error: {
-                    type: 'AuthenticationError',
-                    timestamp: new Date().toISOString()
-                }
-            });
-        }
+    const token = jwt.sign(
+      {
+        id: checkUser._id,
+        role: checkUser.role,
+        email: checkUser.email,
+        userName: checkUser.userName,
+      },
+      "CLIENT_SECRET_KEY",
+      { expiresIn: "60m" }
+    );
 
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(200).json({
-            success: true,
-            message: "Login successful",
-            data: {
-                userId: user._id,
-                email: user.email,
-                token
-            }
-        });
-
-    } catch (e) {
-        console.error('=== LOGIN ERROR ===');
-        console.error('Error Type:', e.constructor.name);
-        console.error('Error Message:', e.message);
-        console.error('Stack Trace:', e.stack);
-        console.error('Request Body:', req.body);
-        console.error('Timestamp:', new Date().toISOString());
-        console.error('===================');
-
-        res.status(500).json({
-            success: false,
-            message: "Login failed due to server error",
-            error: {
-                type: e.constructor.name,
-                timestamp: new Date().toISOString()
-            }
-        });
-    }
+    res.cookie("token", token, { httpOnly: true, secure: false }).json({
+      success: true,
+      message: "Logged in successfully",
+      user: {
+        email: checkUser.email,
+        role: checkUser.role,
+        id: checkUser._id,
+        userName: checkUser.userName,
+      },
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({
+      success: false,
+      message: "Some error occured",
+    });
+  }
 };
 
 
 
-
 module.exports = {
-    registerUser
+    registerUser, loginUser
 };
