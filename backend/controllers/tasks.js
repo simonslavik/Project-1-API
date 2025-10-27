@@ -16,19 +16,41 @@ const createTask = async (req, res) => {
         if (assignedTo && !mongoose.Types.ObjectId.isValid(assignedTo)) {
             return res.status(400).json({ success: false, message: 'Invalid user ID format' });
         }
+        // Validate that the assigned user exists
+        if (assignedTo) {
+            const User = require('../models/User');
+            const userExists = await User.findById(assignedTo);
+            if (!userExists) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'User not found. Cannot assign task to non-existent user.',
+                    error: {
+                        type: 'ValidationError',
+                        field: 'assignedTo',
+                        providedId: assignedTo,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            }
+        }
 
 
         const newTask = new Task({
             title,
             description,
             status,
-            assignedTo: assignedTo ? mongoose.Types.ObjectId(assignedTo) : null,
+            assignedTo: assignedTo || null,
         });
 
         const savedTask = await newTask.save();
         res.status(201).json({ success: true, message: 'Task created successfully', task: savedTask });
     } catch (error) {
-        console.error('Error creating task:', error);
+        console.error('=== TASK CREATION ERROR ===');
+        console.error('Error Type:', error.constructor.name);
+        console.error('Error Message:', error.message);
+        console.error('Stack Trace:', error.stack);
+        console.error('Request Body:', req.body);
+        console.error('==========================');
         res.status(500).json({ success: false, message: 'Server error while creating task' });
     }
 };
@@ -55,13 +77,31 @@ const updateTask = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid user ID format' });
         }
 
+        // Validate that the assigned user exists
+        if (assignedTo) {
+            const User = require('../models/User');
+            const userExists = await User.findById(assignedTo);
+            if (!userExists) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'User not found. Cannot assign task to non-existent user.',
+                    error: {
+                        type: 'ValidationError',
+                        field: 'assignedTo',
+                        providedId: assignedTo,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            }
+        }
+
         const updatedTask = await Task.findByIdAndUpdate(
             id,
             {
                 title,
                 description,
                 status,
-                assignedTo: assignedTo ? mongoose.Types.ObjectId(assignedTo) : null,
+                assignedTo: assignedTo || null,
             },
             { new: true }
         );

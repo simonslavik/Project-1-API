@@ -15,7 +15,7 @@ const { adminOnly } = require('../../middlewares/isAdminMiddleware');
 router.post('/', authMiddleware, adminOnly, createTask);
 router.put('/:id', authMiddleware, adminOnly, updateTask);
 router.delete('/:id', authMiddleware, adminOnly, deleteTask);
-router.get('/', authMiddleware, adminOnly, getAllTasks);
-router.get('/:id', authMiddleware, adminOnly, getTaskById);
+router.get('/', getAllTasks);
+router.get('/:id', getTaskById);
 
 module.exports = router;

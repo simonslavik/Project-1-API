@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
+const mongoose = require('mongoose');
 
 
 
@@ -252,5 +253,5 @@ const getUser = async (req, res) => {
 };
 
 module.exports = {
-    registerUser, loginUser, logoutUser, authMiddleware, getAllUsers, getUser
+    registerUser, loginUser, logoutUser, getAllUsers, getUser
 };

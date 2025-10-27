@@ -1,5 +1,7 @@
 const express = require("express");
-const {registerUser, loginUser, logoutUser , authMiddleware} = require("../../controllers/user");
+const {registerUser, loginUser, logoutUser, getAllUsers, getUser} = require("../../controllers/user");
+const { authMiddleware } = require('../../middlewares/authMiddleware');
+
 
 const router = express.Router();
 
@@ -14,6 +16,9 @@ router.get("/check-auth", authMiddleware, (req, res) => {
     user,
   });
 });
+router.get("/", authMiddleware, getAllUsers);
+router.get("/:id", authMiddleware, getUser);
+
 
 
 module.exports = router;
