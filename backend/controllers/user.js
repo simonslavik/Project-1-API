@@ -186,7 +186,7 @@ const loginUser = async (req, res) => {
         email: checkUser.email,
         userName: checkUser.userName,
       },
-      "CLIENT_SECRET_KEY",
+      process.env.JWT_SECRET,
       { expiresIn: "60m" }
     );
 
@@ -209,8 +209,73 @@ const loginUser = async (req, res) => {
   }
 };
 
+const logoutUser = (req, res) => {
+  res.clearCookie("token").json({
+    success: true,
+    message: "Logged out successfully!",
+  });
+};
 
+
+//auth middleware
+const authMiddleware = async (req, res, next) => {
+  // Try cookie first, then Authorization header
+  let token = req.cookies.token;
+  
+  if (!token && req.headers.authorization) {
+    token = req.headers.authorization.replace('Bearer ', '');
+  }
+  
+  if (!token)
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorised user!",
+    });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: "Unauthorised user!",
+    });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, '-password'); // Exclude password field
+        res.status(200).json({ success: true, users });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ success: false, message: 'Server error while fetching users' });
+    }
+};
+
+const getUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Validate user ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: 'Invalid user ID format' });
+        }
+
+        const user = await User.findById(id, '-password'); // Exclude password field
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        res.status(200).json({ success: true, user });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ success: false, message: 'Server error while fetching user' });
+    }
+};
 
 module.exports = {
-    registerUser, loginUser
+    registerUser, loginUser, logoutUser, authMiddleware, getAllUsers, getUser
 };
