@@ -3,6 +3,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./mongodb/connection');
 const authRoutes = require('./routes/auth/routes');
+const taskRoutes = require('./routes/tasks/routes');
 const cors = require('cors');
 
 const app = express();
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Global error handler for other errors
 app.use((err, req, res, next) => {
